@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
+	"math/big"
 	"net"
 	"strings"
 	"testing"
@@ -84,17 +85,14 @@ func Test_Insert(t *testing.T) {
 				uint16 UInt16,
 				uint32 UInt32,
 				uint64 UInt64,
+				uint256 UInt256,
 				float32 Float32,
 				float64 Float64,
 				string  String,
 				fString FixedString(2),
 				date    Date,
 				datetime DateTime,
-				datetime64 DateTime64,
-				ipv4 IPv4,
-				ipv6 IPv6,
-				ipv4str FixedString(16),
-				ipv6str FixedString(16)
+				datetime64 DateTime64
 			) Engine=Memory
 		`
 		dml = `
@@ -107,21 +105,15 @@ func Test_Insert(t *testing.T) {
 				uint16,
 				uint32,
 				uint64,
+				uint256,
 				float32,
 				float64,
 				string,
 				fString,
 				date,
 				datetime,
-				datetime64,
-				ipv4,
-				ipv6,
-				ipv4str,
-				ipv6str
+				datetime64
 			) VALUES (
-				?,
-				?,
-				?,
 				?,
 				?,
 				?,
@@ -149,105 +141,92 @@ func Test_Insert(t *testing.T) {
 				uint16,
 				uint32,
 				uint64,
+				uint256,
 				float32,
 				float64,
 				string,
 				fString,
 				date,
 				datetime,
-				datetime64,
-				ipv4,
-				ipv6,
-				ipv4str,
-				ipv6str
+				datetime64
 			FROM clickhouse_test_insert
 		`
 	)
 	if connect, err := sql.Open("clickhouse", "tcp://127.0.0.1:9000?debug=true"); assert.NoError(t, err) && assert.NoError(t, connect.Ping()) {
-		if _, err := connect.Exec("DROP TABLE IF EXISTS clickhouse_test_insert"); assert.NoError(t, err) {
-			if _, err := connect.Exec(ddl); assert.NoError(t, err) {
-				if tx, err := connect.Begin(); assert.NoError(t, err) {
-					if stmt, err := tx.Prepare(dml); assert.NoError(t, err) {
-						for i := 1; i <= 10; i++ {
-							_, err = stmt.Exec(
-								-1*i, -2*i, -4*i, -8*i, // int
-								uint8(1*i), uint16(2*i), uint32(4*i), uint64(8*i), // uint
-								1.32*float32(i), 1.64*float64(i), //float
-								fmt.Sprintf("string %d", i), // string
-								"RU",                        //fixedstring,
-								time.Now(),                  //date
-								time.Now(),                  //datetime
-								time.Now(),                  //datetime64
-								"1.2.3.4",                   // ipv4
-								"2001:0db8:85a3:0000:0000:8a2e:0370:7334", //ipv6
-								column.IP(net.ParseIP("127.0.0.1").To4()),
-								column.IP(net.ParseIP("2001:0db8:85a3:0000:0000:8a2e:0370:7334")),
-							)
-							if !assert.NoError(t, err) {
-								return
-							}
-						}
-					} else {
+		//if _, err := connect.Exec("DROP TABLE IF EXISTS clickhouse_test_insert"); assert.NoError(t, err) {
+		//	if _, err := connect.Exec(ddl); assert.NoError(t, err) {
+		if tx, err := connect.Begin(); assert.NoError(t, err) {
+			if stmt, err := tx.Prepare(dml); assert.NoError(t, err) {
+				for i := 1; i <= 10; i++ {
+					_, err = stmt.Exec(
+						-1*i, -2*i, -4*i, -8*i, // int
+						uint8(1*i), uint16(2*i), uint32(4*i), uint64(8*i), big.NewInt(int64(8*i)).Bytes(), // uint
+						1.32*float32(i), 1.64*float64(i), //float
+						fmt.Sprintf("string %d", i), // string
+						"RU",                        //fixedstring,
+						time.Now(),                  //date
+						time.Now(),                  //datetime
+						time.Now(),                  //datetime64
+					)
+					if !assert.NoError(t, err) {
 						return
 					}
-					if assert.NoError(t, tx.Commit()) {
-						var item struct {
-							Int8        int8
-							Int16       int16
-							Int32       int32
-							Int64       int64
-							UInt8       uint8
-							UInt16      uint16
-							UInt32      uint32
-							UInt64      uint64
-							Float32     float32
-							Float64     float64
-							String      string
-							FixedString string
-							Date        time.Time
-							DateTime    time.Time
-							DateTime64  time.Time
-							Ipv6        column.IP
-							Ipv4        column.IP
-							Ipv4str     column.IP
-							Ipv6str     column.IP
-						}
-						if rows, err := connect.Query(query); assert.NoError(t, err) {
-							var count int
-							for rows.Next() {
-								count++
-								err := rows.Scan(
-									&item.Int8,
-									&item.Int16,
-									&item.Int32,
-									&item.Int64,
-									&item.UInt8,
-									&item.UInt16,
-									&item.UInt32,
-									&item.UInt64,
-									&item.Float32,
-									&item.Float64,
-									&item.String,
-									&item.FixedString,
-									&item.Date,
-									&item.DateTime,
-									&item.DateTime64,
-									&item.Ipv4,
-									&item.Ipv6,
-									&item.Ipv4str,
-									&item.Ipv6str,
-								)
-								if !assert.NoError(t, err) {
-									return
-								}
-							}
-							assert.Equal(t, int(10), count)
+				}
+			} else {
+				return
+			}
+			if assert.NoError(t, tx.Commit()) {
+				var item struct {
+					Int8        int8
+					Int16       int16
+					Int32       int32
+					Int64       int64
+					UInt8       uint8
+					UInt16      uint16
+					UInt32      uint32
+					UInt64      uint64
+					UInt256     []byte
+					Float32     float32
+					Float64     float64
+					String      string
+					FixedString string
+					Date        time.Time
+					DateTime    time.Time
+					DateTime64  time.Time
+				}
+				if rows, err := connect.Query(query); assert.NoError(t, err) {
+					var count int
+					for rows.Next() {
+						count++
+						err := rows.Scan(
+							&item.Int8,
+							&item.Int16,
+							&item.Int32,
+							&item.Int64,
+							&item.UInt8,
+							&item.UInt16,
+							&item.UInt32,
+							&item.UInt64,
+							&item.UInt256,
+							&item.Float32,
+							&item.Float64,
+							&item.String,
+							&item.FixedString,
+							&item.Date,
+							&item.DateTime,
+							&item.DateTime64,
+						)
+						if !assert.NoError(t, err) {
+							return
 						}
 					}
+					assert.Equal(t, int(10), count)
 				}
 			}
 		}
 	}
+	//	}
+	//}
 }
 
 func Test_InsertBatch(t *testing.T) {

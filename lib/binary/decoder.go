@@ -19,6 +19,8 @@ func NewDecoderWithCompress(input io.Reader) *Decoder {
 	}
 }
 
+const MaxVariantLen256 = 40
+
 type Decoder struct {
 	compress      bool
 	input         io.Reader
@@ -118,6 +120,14 @@ func (decoder *Decoder) UInt64() (uint64, error) {
 		uint64(decoder.scratch[5])<<40 |
 		uint64(decoder.scratch[6])<<48 |
 		uint64(decoder.scratch[7])<<56, nil
+}
+
+func (decoder *Decoder) UInt256() ([]byte, error) {
+	if _, err := decoder.Get().Read(decoder.scratch[:]); err != nil {
+		return []byte{}, err
+	}
+
+	return decoder.scratch[:], nil
 }
 
 func (decoder *Decoder) Float32() (float32, error) {

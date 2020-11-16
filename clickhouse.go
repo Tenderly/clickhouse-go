@@ -24,6 +24,7 @@ type (
 	Date     = types.Date
 	DateTime = types.DateTime
 	UUID     = types.UUID
+	Uint256  = []byte
 )
 
 var (
@@ -181,7 +182,7 @@ func (ch *clickhouse) CheckNamedValue(nv *driver.NamedValue) error {
 	switch v := nv.Value.(type) {
 	case
 		[]int, []int8, []int16, []int32, []int64,
-		[]uint, []uint8, []uint16, []uint32, []uint64,
+		[]uint, []uint8, []uint16, []uint32, []uint64, []Uint256,
 		[]float32, []float64,
 		[]string:
 		return nil

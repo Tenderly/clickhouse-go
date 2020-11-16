@@ -58,6 +58,10 @@ func (block *Block) WriteUInt64(c int, v uint64) error {
 	return block.buffers[c].Column.UInt64(v)
 }
 
+func (block *Block) WriteUInt256(c int, v []byte) error {
+	return block.Columns[c].Write(block.buffers[c].Column, v)
+}
+
 func (block *Block) WriteFloat32(c int, v float32) error {
 	return block.buffers[c].Column.Float32(v)
 }

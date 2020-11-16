@@ -27,6 +27,7 @@ type ColumnWriter interface {
 	WriteUInt16(c int, v uint16) error
 	WriteUInt32(c int, v uint32) error
 	WriteUInt64(c int, v uint64) error
+	WriteUInt256(c int, v []byte) error
 	WriteFloat32(c int, v float32) error
 	WriteFloat64(c int, v float64) error
 	WriteBytes(c int, v []byte) error

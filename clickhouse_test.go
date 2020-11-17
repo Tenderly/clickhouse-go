@@ -157,7 +157,7 @@ func Test_Insert(t *testing.T) {
 		//	if _, err := connect.Exec(ddl); assert.NoError(t, err) {
 		if tx, err := connect.Begin(); assert.NoError(t, err) {
 			if stmt, err := tx.Prepare(dml); assert.NoError(t, err) {
-				for i := 1; i <= 10; i++ {
+				for i := 1; i <= 1; i++ {
 					_, err = stmt.Exec(
 						-1*i, -2*i, -4*i, -8*i, // int
 						uint8(1*i), uint16(2*i), uint32(4*i), uint64(8*i), big.NewInt(int64(8*i)).Bytes(), // uint
@@ -220,7 +220,7 @@ func Test_Insert(t *testing.T) {
 							return
 						}
 					}
-					assert.Equal(t, int(10), count)
+					assert.Equal(t, int(1), count)
 				}
 			}
 		}
